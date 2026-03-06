@@ -64,7 +64,7 @@ export default function Home() {
             <span className="text-lg font-black tracking-tight">YakaManager</span>
           </div>
           <div className="text-gray-400 text-sm font-medium">
-            &copy; {new Date().getFullYear()} Yaka & Power Manager. Built for the modern user.
+            &copy; 2025 Yaka & Power Manager. Built for the modern user.
           </div>
         </div>
       </footer>
