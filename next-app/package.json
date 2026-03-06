@@ -10,14 +10,19 @@
     "setup": "npm install && npx prisma generate && npx prisma db push"
   },
   "dependencies": {
-    "@prisma/client": "^7.4.2",
     "@prisma/adapter-mariadb": "^7.4.2",
+    "@prisma/client": "^6.19.2",
     "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.35.0",
+    "lucide-react": "^0.577.0",
+    "mariadb": "^3.5.1",
     "next": "16.1.6",
     "next-auth": "^4.24.13",
-    "prisma": "^7.4.2",
+    "prisma": "^6.19.2",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
