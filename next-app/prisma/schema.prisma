@@ -7,6 +7,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -15,26 +16,21 @@ model User {
   email                 String    @unique
   emailVerifiedAt       DateTime?
   password              String
+  phone                 String?
   usertype              String    @default("user")
   rememberToken         String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
-  employee              Employee?
+  savedAppliances       SavedAppliance[]
 }
 
-model Employee {
+model SavedAppliance {
   id                    Int       @id @default(autoincrement())
-  userId                Int       @unique
+  userId                Int
   name                  String
-  email                 String    @unique
-  phone                 String
-  job                   String
-  avatar                String?
-  documents             String?
-  status                String    @default("pending")
-  placePosted           String?
-  duration              String?
+  power                 Int
+  hoursPerDay           Float     @default(0)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 

@@ -12,7 +12,6 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: parseInt(session.user.id) },
-    include: { employee: true },
   });
 
   if (!user) {
