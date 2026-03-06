@@ -10,7 +10,7 @@ export default function UserManagement() {
 
   async function fetchUsers() {
     try {
-      const res = await fetch("/api/admin/employees"); // Reusing the same API endpoint
+      const res = await fetch("/api/admin/users");
       if (res.ok) {
         const data = await res.json();
         setUsers(data.users || []);
