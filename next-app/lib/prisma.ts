@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
+import mariadb from "mariadb";
 
 const prismaClientSingleton = () => {
   const dbUrl = process.env.DATABASE_URL;
@@ -15,14 +16,18 @@ const prismaClientSingleton = () => {
   const password = decodeURIComponent(url.password || "");
   const database = decodeURIComponent(url.pathname.replace("/", ""));
 
-  const adapter = new PrismaMariaDb({
+  const config: mariadb.PoolConfig = {
     host,
     port,
     user,
     password,
     database,
     connectionLimit: 10
-  });
+  };
+
+  const pool = mariadb.createPool(config);
+
+  const adapter = new PrismaMariaDb(pool as any);
 
   return new PrismaClient({ adapter });
 };
