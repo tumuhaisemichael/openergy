@@ -9,16 +9,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const q = request.nextUrl.searchParams.get("q") || undefined;
-  if (!q) return NextResponse.json({ users: [] });
-
   const users = await prisma.user.findMany({
-    where: {
-      OR: [
-        { name: { contains: q } },
-        { email: { contains: q } },
-      ],
-    },
+    where: { usertype: "user" },
+    include: { savedAppliances: true },
+    orderBy: { createdAt: "desc" },
   });
 
   return NextResponse.json({ users });
