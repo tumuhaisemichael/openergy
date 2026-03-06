@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@prisma/client": "^7.4.2",
+    "@prisma/adapter-mariadb": "^7.4.2",
     "bcryptjs": "^3.0.3",
     "next": "16.1.6",
     "next-auth": "^4.24.13",
