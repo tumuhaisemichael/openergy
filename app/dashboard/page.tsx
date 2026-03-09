@@ -1,19 +1,34 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {
+  BrainCircuit,
   Calculator,
   Cpu,
   LayoutDashboard,
   ListChecks,
   LogOut,
+  PiggyBank,
   ShieldCheck,
+  TrendingUp,
   User,
   Wallet,
   Zap,
 } from "lucide-react";
+import { Bar, Doughnut } from "react-chartjs-2";
+import {
+  ArcElement,
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  Tooltip,
+} from "chart.js";
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
 type SavedAppliance = { name: string; power: number; hoursPerDay?: number };
 type HistoryEntry = {
@@ -37,10 +52,31 @@ const modules = [
   },
   {
     title: "Cost Breakdown",
-    desc: "Tariff assumptions and bill model",
+    desc: "Calculator usage totals and history bill details",
     href: "/user/cost",
     icon: Wallet,
     color: "bg-indigo-600",
+  },
+  {
+    title: "AI Advisor",
+    desc: "History-based savings levels and advisor chat area",
+    href: "/user/ai-advisor",
+    icon: BrainCircuit,
+    color: "bg-sky-600",
+  },
+  {
+    title: "Predictions",
+    desc: "Monthly appliance-by-appliance power and money forecast",
+    href: "/user/predictions",
+    icon: TrendingUp,
+    color: "bg-violet-600",
+  },
+  {
+    title: "Money Planner",
+    desc: "Budget + duration planner with appliance list support",
+    href: "/user/money-planner",
+    icon: PiggyBank,
+    color: "bg-rose-600",
   },
   {
     title: "Appliances",
@@ -144,6 +180,65 @@ export default function DashboardPage() {
     ];
   }, [history, savedAppliances]);
 
+  const graphRows = useMemo(() => {
+    return savedAppliances.map((item) => {
+      const hours = Math.max(0, Math.min(24, Number(item.hoursPerDay || 0)));
+      const dailyKwh = (Number(item.power) * hours) / 1000;
+      return {
+        name: item.name,
+        dailyKwh,
+      };
+    });
+  }, [savedAppliances]);
+
+  const barData = useMemo(
+    () => ({
+      labels: graphRows.map((row) => row.name),
+      datasets: [
+        {
+          label: "Estimated Daily kWh",
+          data: graphRows.map((row) => Number(row.dailyKwh.toFixed(3))),
+          backgroundColor: "#2563eb",
+          borderRadius: 6,
+        },
+      ],
+    }),
+    [graphRows]
+  );
+
+  const doughnutData = useMemo(
+    () => ({
+      labels: graphRows.map((row) => row.name),
+      datasets: [
+        {
+          label: "Usage Share",
+          data: graphRows.map((row) => Number(row.dailyKwh.toFixed(3))),
+          backgroundColor: ["#2563eb", "#16a34a", "#f59e0b", "#14b8a6", "#a855f7", "#ef4444", "#0ea5e9", "#84cc16"],
+          borderWidth: 1,
+        },
+      ],
+    }),
+    [graphRows]
+  );
+
+  const dashboardTips = useMemo(() => {
+    if (graphRows.length === 0) {
+      return [
+        "Add and save appliance usage in the calculator to get personalized tips.",
+        "Keep track of high-watt appliances and reduce unnecessary runtime.",
+      ];
+    }
+
+    const highest = [...graphRows].sort((a, b) => b.dailyKwh - a.dailyKwh)[0];
+    const tipA = highest ? `Top daily load is ${highest.name}. Reducing it by 1h/day can noticeably cut monthly cost.` : "";
+
+    return [
+      tipA,
+      "Switch off standby loads overnight where safe.",
+      "Set weekly appliance-hour targets and compare against history.",
+    ].filter(Boolean);
+  }, [graphRows]);
+
   return (
     <div className="min-h-screen bg-slate-50 lg:flex">
       <aside className="hidden lg:flex w-72 flex-col bg-white border-r border-slate-200 p-6 sticky top-0 h-screen">
@@ -155,18 +250,49 @@ export default function DashboardPage() {
         </Link>
 
         <nav className="space-y-2 flex-1">
-          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 text-blue-700 font-bold text-sm">
-            <LayoutDashboard className="w-5 h-5" /> Dashboard
-          </Link>
-          <Link href="/user/yaka" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-bold text-sm">
-            <Calculator className="w-5 h-5" /> Calculator
-          </Link>
-          <Link href="/user/cost" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-bold text-sm">
-            <Wallet className="w-5 h-5" /> Bill Breakdown
-          </Link>
-          <Link href="/user/update" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 font-bold text-sm">
-            <User className="w-5 h-5" /> Profile
-          </Link>
+          <SideNavLink
+            href="/dashboard"
+            label="Dashboard"
+            description="Overview of your energy activity and quick access modules."
+            active
+            icon={<LayoutDashboard className="w-5 h-5" />}
+          />
+          <SideNavLink
+            href="/user/yaka"
+            label="Calculator"
+            description="Build appliance usage and estimate units and spend."
+            icon={<Calculator className="w-5 h-5" />}
+          />
+          <SideNavLink
+            href="/user/cost"
+            label="Bill Breakdown"
+            description="See calculator usage count, day totals, units and spend history."
+            icon={<Wallet className="w-5 h-5" />}
+          />
+          <SideNavLink
+            href="/user/ai-advisor"
+            label="AI Advisor"
+            description="Open AI savings levels and history-based advisor chat workspace."
+            icon={<BrainCircuit className="w-5 h-5" />}
+          />
+          <SideNavLink
+            href="/user/predictions"
+            label="Prediction"
+            description="Detailed monthly prediction by appliance power and money."
+            icon={<TrendingUp className="w-5 h-5" />}
+          />
+          <SideNavLink
+            href="/user/money-planner"
+            label="Money Planner"
+            description="Plan how long your money lasts and recommended appliance hours."
+            icon={<PiggyBank className="w-5 h-5" />}
+          />
+          <SideNavLink
+            href="/user/update"
+            label="Profile"
+            description="Update your account details used across modules."
+            icon={<User className="w-5 h-5" />}
+          />
         </nav>
 
         <div className="pt-6 border-t border-slate-100 space-y-2">
@@ -233,7 +359,73 @@ export default function DashboardPage() {
             })}
           </div>
         </section>
+
+        <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <h2 className="font-black text-slate-900 text-lg mb-3">Power Usage by Appliance</h2>
+            {graphRows.length === 0 ? (
+              <p className="text-sm text-slate-500">No saved appliance data yet.</p>
+            ) : (
+              <Bar
+                data={barData}
+                options={{
+                  responsive: true,
+                  plugins: { legend: { display: false } },
+                  scales: {
+                    y: { beginAtZero: true, title: { display: true, text: "kWh/day" } },
+                    x: { ticks: { maxRotation: 45, minRotation: 0 } },
+                  },
+                }}
+              />
+            )}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <h2 className="font-black text-slate-900 text-lg mb-3">AI General Power Tips</h2>
+            <ul className="text-sm text-slate-700 list-disc pl-5 space-y-1 mb-4">
+              {dashboardTips.map((tip, idx) => (
+                <li key={`dash-tip-${idx}`}>{tip}</li>
+              ))}
+            </ul>
+
+            {graphRows.length > 0 && (
+              <div className="max-w-sm">
+                <Doughnut data={doughnutData} options={{ responsive: true, plugins: { legend: { position: "bottom" } } }} />
+              </div>
+            )}
+          </div>
+        </section>
       </main>
+    </div>
+  );
+}
+
+function SideNavLink({
+  href,
+  label,
+  description,
+  icon,
+  active = false,
+}: {
+  href: string;
+  label: string;
+  description: string;
+  icon: ReactNode;
+  active?: boolean;
+}) {
+  return (
+    <div className="relative group">
+      <Link
+        href={href}
+        className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-colors ${
+          active ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+        }`}
+      >
+        {icon} {label}
+      </Link>
+      <div className="pointer-events-none absolute left-full top-1/2 z-20 ml-2 hidden w-56 -translate-y-1/2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-lg group-hover:block">
+        {description}
+      </div>
     </div>
   );
 }
