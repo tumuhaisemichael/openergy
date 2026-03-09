@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Zap, Mail, Lock, User, AlertCircle, ArrowRight, Loader2, Globe, ShieldCheck, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { signIn } from "next-auth/react";
+import { getProviders, signIn } from "next-auth/react";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -14,7 +14,23 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    let active = true;
+    getProviders()
+      .then((providers) => {
+        if (!active) return;
+        setGoogleEnabled(Boolean(providers?.google));
+      })
+      .catch(() => {
+        if (active) setGoogleEnabled(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,7 +50,7 @@ export default function RegisterPage() {
         const data = await res.json();
         setError(data.error || "Failed to register. Please check your details.");
       }
-    } catch (err) {
+    } catch {
       setError("Network error. Please check your connection.");
     } finally {
       setIsLoading(false);
@@ -42,6 +58,10 @@ export default function RegisterPage() {
   }
 
   const handleGoogleSignIn = () => {
+    if (!googleEnabled) {
+      setError("Google sign-up is not configured yet. Please use the registration form.");
+      return;
+    }
     setIsLoading(true);
     signIn("google", { callbackUrl: "/dashboard" });
   };
@@ -176,6 +196,7 @@ export default function RegisterPage() {
                     onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
+                <p className="text-xs text-gray-400 ml-1">Use at least 8 characters for a stronger account.</p>
               </div>
 
               <button
@@ -209,6 +230,7 @@ export default function RegisterPage() {
               <button
                 onClick={handleGoogleSignIn}
                 type="button"
+                disabled={isLoading || !googleEnabled}
                 className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-100 py-4 px-6 rounded-2xl font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-200 transition-all active:scale-[0.98]"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -217,7 +239,7 @@ export default function RegisterPage() {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
-                Google Account
+                {googleEnabled ? "Google Account" : "Google Unavailable"}
               </button>
             </div>
 

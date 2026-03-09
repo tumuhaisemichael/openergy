@@ -1,19 +1,46 @@
 "use client";
 
-import { signIn } from "next-auth/react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { getProviders, signIn } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Zap, Mail, Lock, AlertCircle, ArrowRight, Loader2, Sparkles, Battery, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+
+const floatingZaps = [
+  { left: "8%", top: "14%", size: 28, duration: 6, delay: 0 },
+  { left: "22%", top: "72%", size: 40, duration: 7, delay: 1.2 },
+  { left: "39%", top: "28%", size: 34, duration: 8, delay: 2.1 },
+  { left: "58%", top: "83%", size: 44, duration: 9, delay: 3 },
+  { left: "76%", top: "18%", size: 36, duration: 7.5, delay: 3.8 },
+  { left: "90%", top: "58%", size: 30, duration: 6.5, delay: 4.6 },
+];
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [googleEnabled, setGoogleEnabled] = useState(true);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const registered = searchParams.get("registered") === "true";
+
+  useEffect(() => {
+    let active = true;
+    getProviders()
+      .then((providers) => {
+        if (!active) return;
+        setGoogleEnabled(Boolean(providers?.google));
+      })
+      .catch(() => {
+        if (active) setGoogleEnabled(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,7 +60,7 @@ export default function LoginPage() {
         router.push("/dashboard");
         router.refresh();
       }
-    } catch (err) {
+    } catch {
       setError("Something went wrong. Please try again later.");
     } finally {
       setIsLoading(false);
@@ -41,6 +68,10 @@ export default function LoginPage() {
   }
 
   const handleGoogleSignIn = () => {
+    if (!googleEnabled) {
+      setError("Google sign-in is not configured yet. Please use email/password login.");
+      return;
+    }
     setIsLoading(true);
     signIn("google", { callbackUrl: "/dashboard" });
   };
@@ -66,6 +97,18 @@ export default function LoginPage() {
               <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">Welcome Back.</h1>
               <p className="text-gray-500 font-medium">Continue managing your energy footprint.</p>
             </div>
+
+            {registered && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mb-6 p-4 bg-green-50 border border-green-100 rounded-2xl"
+              >
+                <p className="text-sm font-bold text-green-800 leading-tight">
+                  Account created successfully. Sign in to continue.
+                </p>
+              </motion.div>
+            )}
 
             {error && (
               <motion.div 
@@ -109,11 +152,13 @@ export default function LoginPage() {
                   <input
                     type="password"
                     required
+                    minLength={8}
                     className="block w-full pl-11 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-gray-900 font-medium placeholder:text-gray-400 focus:outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-200 transition-all"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
                 </div>
+                <p className="text-xs text-gray-400 ml-1">Use the same password you created during registration.</p>
               </div>
 
               <button
@@ -147,6 +192,7 @@ export default function LoginPage() {
               <button
                 onClick={handleGoogleSignIn}
                 type="button"
+                disabled={isLoading || !googleEnabled}
                 className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-100 py-4 px-6 rounded-2xl font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-200 transition-all active:scale-[0.98]"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -167,7 +213,7 @@ export default function LoginPage() {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                Google Account
+                {googleEnabled ? "Google Account" : "Google Unavailable"}
               </button>
             </div>
 
@@ -251,7 +297,7 @@ export default function LoginPage() {
 
         {/* Floating Accent Icons */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {[...Array(6)].map((_, i) => (
+          {floatingZaps.map((zap, i) => (
             <motion.div
               key={i}
               animate={{ 
@@ -259,17 +305,17 @@ export default function LoginPage() {
                 opacity: [0, 0.3, 0]
               }}
               transition={{ 
-                duration: 5 + Math.random() * 5, 
+                duration: zap.duration,
                 repeat: Infinity,
-                delay: i * 1.5
+                delay: zap.delay
               }}
               className="absolute text-blue-500/20"
               style={{ 
-                left: `${Math.random() * 100}%`, 
-                top: `${Math.random() * 100}%` 
+                left: zap.left,
+                top: zap.top,
               }}
             >
-              <Zap size={24 + Math.random() * 48} />
+              <Zap size={zap.size} />
             </motion.div>
           ))}
         </div>

@@ -3,6 +3,12 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
+type ApplianceInput = {
+  name: string;
+  power: number;
+  hoursPerDay?: number;
+};
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
@@ -10,7 +16,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { appliances } = await request.json();
+    const { appliances } = (await request.json()) as { appliances: ApplianceInput[] };
     const userId = Number(session.user.id);
 
     // Delete existing saved appliances for this user
@@ -18,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     // Create new entries
     const created = await prisma.savedAppliance.createMany({
-      data: appliances.map((a: any) => ({
+      data: appliances.map((a) => ({
         userId,
         name: a.name,
         power: a.power,

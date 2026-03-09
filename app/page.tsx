@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Zap, Calculator, Shield, ArrowRight, Save, LayoutDashboard } from "lucide-react";
+import { Zap, Calculator, Shield, ArrowRight, Save } from "lucide-react";
 
 export default function Home() {
   return (
@@ -43,11 +43,11 @@ export default function Home() {
                 Stop the guessing game. Precisely estimate costs, track appliance energy draw, and manage your electricity profile with data-driven insights.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/dashboard" className="bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-2xl text-lg font-bold transition-all shadow-xl flex items-center justify-center gap-2 group">
-                  Dashboard <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <Link href="/user/yaka" className="bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-2xl text-lg font-bold transition-all shadow-xl flex items-center justify-center gap-2 group">
+                  Start Calculating <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
-                <Link href="/user/yaka" className="bg-white border-2 border-gray-100 hover:border-blue-100 hover:bg-blue-50 text-gray-900 px-8 py-4 rounded-2xl text-lg font-bold transition-all flex items-center justify-center gap-2">
-                  <Calculator className="w-5 h-5 text-blue-600" /> Use Calculator
+                <Link href="/dashboard" className="bg-white border-2 border-gray-100 hover:border-blue-100 hover:bg-blue-50 text-gray-900 px-8 py-4 rounded-2xl text-lg font-bold transition-all flex items-center justify-center gap-2">
+                  <Calculator className="w-5 h-5 text-blue-600" /> Open Dashboard
                 </Link>
               </div>
             </div>
@@ -82,6 +82,28 @@ export default function Home() {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-24 bg-white border-y border-slate-100">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="max-w-2xl mb-10">
+              <p className="text-xs uppercase tracking-[0.25em] font-black text-blue-700">How It Works</p>
+              <h2 className="text-4xl font-black tracking-tight text-gray-900 mt-3">From appliances to spend, in 3 steps.</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                { title: "Build Appliance List", text: "Pick known appliances or add custom ones with watt ratings." },
+                { title: "Set Daily Hours", text: "Define usage behavior per appliance and choose a planning period." },
+                { title: "Get Units + Cost", text: "See estimated kWh units and projected spend, then save your profile." },
+              ].map((step, index) => (
+                <div key={step.title} className="bg-slate-50 border border-slate-200 rounded-3xl p-6">
+                  <p className="w-8 h-8 rounded-full bg-blue-600 text-white font-black text-sm flex items-center justify-center">{index + 1}</p>
+                  <h3 className="text-xl font-black mt-4">{step.title}</h3>
+                  <p className="text-gray-600 mt-2 text-sm leading-relaxed">{step.text}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -122,12 +144,13 @@ export default function Home() {
             <Zap className="w-5 h-5" />
             <span className="text-lg font-black tracking-tighter uppercase">OP Energy</span>
           </div>
-          <div className="text-gray-400 text-sm font-bold">
-            © 2025 OP Energy. Uganda's #1 Power Management Solution.
+          <div className="text-gray-400 text-sm font-bold text-center md:text-right">
+            © 2026 OP Energy. Built for Uganda&apos;s Yaka users.
+            <br />
+            support@openergy.app
           </div>
         </div>
       </footer>
     </div>
   );
 }
-

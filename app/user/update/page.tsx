@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function UserUpdate() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   async function loadProfile() {
     const res = await fetch("/api/auth/profile");
@@ -25,6 +27,8 @@ export default function UserUpdate() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setMessage("");
+    setSaving(true);
+
     try {
       const res = await fetch("/api/user/update", {
         method: "POST",
@@ -36,30 +40,75 @@ export default function UserUpdate() {
         setMessage("Profile updated successfully.");
       } else {
         const d = await res.json();
-        setMessage(d.error || "Failed");
+        setMessage(d.error || "Failed to update profile.");
       }
-    } catch (err) {
-      setMessage("Update failed");
+    } catch {
+      setMessage("Update failed. Please try again.");
+    } finally {
+      setSaving(false);
     }
   }
 
-  if (loading) return <div className="p-6">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="page-shell">
+        <div className="page-container card p-8">Loading profile...</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-2xl mx-auto bg-white rounded shadow p-6">
-        <h1 className="text-2xl font-bold mb-4">Update Profile</h1>
-        {message && <div className="mb-4 text-green-700 font-semibold">{message}</div>}
-        <form onSubmit={handleSubmit}>
-          <label className="block mb-1 font-medium text-gray-700">Full Name</label>
-          <input className="w-full mb-4 p-2 border rounded focus:ring-2 focus:ring-green-500" value={name} onChange={(e) => setName(e.target.value)} />
-          <label className="block mb-1 font-medium text-gray-700">Phone Number</label>
-          <input className="w-full mb-6 p-2 border rounded focus:ring-2 focus:ring-green-500" value={phone} onChange={(e) => setPhone(e.target.value)} />
+    <div className="page-shell">
+      <div className="page-container max-w-3xl">
+        <div className="card p-6 md:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-xl">
+                {(name || "U")[0].toUpperCase()}
+              </div>
+              <div>
+                <h1 className="page-title">Update Profile</h1>
+                <p className="page-subtitle">Keep your contact details current for account support.</p>
+              </div>
+            </div>
+            <Link href="/dashboard" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+              Back to Dashboard
+            </Link>
+          </div>
 
-          <button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold p-3 rounded transition-colors shadow-sm">
-            Save Changes
-          </button>
-        </form>
+          {message && (
+            <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+              {message}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <label className="block text-sm font-semibold text-slate-700">
+              Full Name
+              <input
+                className="w-full mt-2 p-3 border border-slate-200 rounded-xl bg-slate-50"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </label>
+
+            <label className="block text-sm font-semibold text-slate-700">
+              Phone Number
+              <input
+                className="w-full mt-2 p-3 border border-slate-200 rounded-xl bg-slate-50"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </label>
+
+            <button
+              disabled={saving}
+              className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-70 text-white font-bold p-3 rounded-xl transition-colors"
+            >
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
