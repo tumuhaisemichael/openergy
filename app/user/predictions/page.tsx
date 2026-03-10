@@ -283,47 +283,105 @@ export default function PredictionsPage() {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
+    const theme = {
+      navy: [15, 23, 42],
+      teal: [13, 148, 136],
+      slate: [226, 232, 240],
+      light: [248, 250, 252],
+      text: [15, 23, 42],
+    } as const;
 
-    doc.setFillColor(30, 41, 59);
-    doc.rect(0, 0, pageWidth, 28, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
-    doc.text("OP Energy - Monthly Predictions", 14, 12);
+    const headerHeight = 26;
+    const accentHeight = 3;
+    const headerBottom = headerHeight + accentHeight + 6;
 
-    doc.setTextColor(15, 23, 42);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()} | Tariff: ${activeTariff}`, 14, 34);
+    const renderHeader = () => {
+      doc.setFillColor(...theme.navy);
+      doc.rect(0, 0, pageWidth, headerHeight, "F");
+      doc.setFillColor(...theme.teal);
+      doc.rect(0, headerHeight, pageWidth, accentHeight, "F");
 
-    let y = 44;
-    monthlyResults.forEach((month) => {
-      if (y > pageHeight - 32) {
-        doc.addPage();
-        y = 18;
-      }
-
+      doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
-      doc.text(`Month ${month.month} - ${month.totalKwh.toFixed(2)} kWh - UGX ${Math.round(month.totalMoney).toLocaleString()}`, 14, y);
-      y += 5;
+      doc.setFontSize(11);
+      doc.text("OP Energy", 14, 11);
+      doc.setFontSize(14);
+      doc.text("Monthly Predictions", 14, 19);
 
       doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, 11, { align: "right" });
+      doc.text(`Tariff: ${activeTariff}`, pageWidth - 14, 19, { align: "right" });
+      doc.setTextColor(...theme.text);
+    };
+
+    const renderFooter = () => {
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i += 1) {
+        doc.setPage(i);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text("openergy.app", 14, pageHeight - 8);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 8, { align: "right" });
+      }
+      doc.setTextColor(...theme.text);
+    };
+
+    const renderMonthHeader = (yStart: number, label: string) => {
+      doc.setFillColor(...theme.navy);
+      doc.rect(14, yStart, pageWidth - 28, 7, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text(label, 16, yStart + 4.8);
+      doc.setTextColor(...theme.text);
+      return yStart + 10;
+    };
+
+    renderHeader();
+
+    let y = headerBottom;
+    monthlyResults.forEach((month) => {
+      const monthLabel = `Month ${month.month} | ${month.totalKwh.toFixed(2)} kWh | UGX ${Math.round(month.totalMoney).toLocaleString()}`;
+      if (y > pageHeight - 32) {
+        doc.addPage();
+        renderHeader();
+        y = headerBottom;
+      }
+
+      y = renderMonthHeader(y, monthLabel);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+
+      let rowIndex = 0;
       month.rows.forEach((item) => {
-        if (y > pageHeight - 10) {
+        if (y > pageHeight - 16) {
           doc.addPage();
-          y = 18;
+          renderHeader();
+          y = renderMonthHeader(headerBottom, monthLabel);
+        }
+
+        if (rowIndex % 2 === 0) {
+          doc.setFillColor(...theme.light);
+          doc.rect(14, y - 4, pageWidth - 28, 6.5, "F");
         }
 
         doc.text(
-          `${item.name} | ${item.power}W | ${item.hoursPerDay.toFixed(2)}h/day | ${item.monthlyKwh.toFixed(2)}kWh | UGX ${Math.round(item.money).toLocaleString()}`,
+          `${item.name} | ${item.power}W | ${item.hoursPerDay.toFixed(2)}h/day | ${item.monthlyKwh.toFixed(2)}kWh | UGX ${Math.round(
+            item.money
+          ).toLocaleString()}`,
           16,
           y
         );
-        y += 4.5;
+        y += 6.5;
+        rowIndex += 1;
       });
 
-      y += 3;
+      y += 4;
     });
+
+    renderFooter();
 
     doc.save(`openergy-predictions-${new Date().toISOString().slice(0, 10)}.pdf`);
   }

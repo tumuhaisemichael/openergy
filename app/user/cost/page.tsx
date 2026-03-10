@@ -54,64 +54,141 @@ export default function CostPage() {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
+    const theme = {
+      navy: [15, 23, 42],
+      teal: [13, 148, 136],
+      slate: [226, 232, 240],
+      light: [248, 250, 252],
+      text: [15, 23, 42],
+    } as const;
 
-    doc.setFillColor(30, 41, 59);
-    doc.rect(0, 0, pageWidth, 28, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
-    doc.text("OP Energy - Bill Breakdown Report", 14, 12);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 19);
+    const headerHeight = 26;
+    const accentHeight = 3;
+    const headerBottom = headerHeight + accentHeight + 6;
 
-    doc.setTextColor(15, 23, 42);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text(`Calculator Uses: ${summary.uses}`, 14, 36);
-    doc.text(`Total Days: ${summary.totalDays}`, 14, 42);
-    doc.text(`Total Units: ${summary.totalUnits.toFixed(2)} kWh`, 82, 36);
-    doc.text(`Total Spend: UGX ${Math.round(summary.totalCost).toLocaleString()}`, 82, 42);
+    const renderHeader = () => {
+      doc.setFillColor(...theme.navy);
+      doc.rect(0, 0, pageWidth, headerHeight, "F");
+      doc.setFillColor(...theme.teal);
+      doc.rect(0, headerHeight, pageWidth, accentHeight, "F");
 
-    let y = 52;
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("OP Energy", 14, 11);
+      doc.setFontSize(14);
+      doc.text("Bill Breakdown Report", 14, 19);
 
-    history.forEach((entry, index) => {
-      if (y > pageHeight - 45) {
-        doc.addPage();
-        y = 18;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, 11, { align: "right" });
+      doc.text(`Entries: ${summary.uses}`, pageWidth - 14, 19, { align: "right" });
+      doc.setTextColor(...theme.text);
+    };
+
+    const renderFooter = () => {
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i += 1) {
+        doc.setPage(i);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text("openergy.app", 14, pageHeight - 8);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 8, { align: "right" });
       }
+      doc.setTextColor(...theme.text);
+    };
 
-      doc.setFillColor(241, 245, 249);
-      doc.roundedRect(12, y - 4, pageWidth - 24, 9, 1.5, 1.5, "F");
+    const renderSummary = (yStart: number) => {
+      const cardGap = 4;
+      const cardWidth = (pageWidth - 28 - cardGap) / 2;
+      const cardHeight = 16;
+      const items = [
+        { label: "Calculator Uses", value: `${summary.uses}` },
+        { label: "Total Days", value: `${summary.totalDays}` },
+        { label: "Total Units", value: `${summary.totalUnits.toFixed(2)} kWh` },
+        { label: "Total Spend", value: `UGX ${Math.round(summary.totalCost).toLocaleString()}` },
+      ];
+
+      items.forEach((item, index) => {
+        const row = Math.floor(index / 2);
+        const col = index % 2;
+        const x = 14 + col * (cardWidth + cardGap);
+        const y = yStart + row * (cardHeight + 4);
+        doc.setFillColor(...theme.light);
+        doc.setDrawColor(...theme.slate);
+        doc.roundedRect(x, y, cardWidth, cardHeight, 2.5, 2.5, "F");
+        doc.roundedRect(x, y, cardWidth, cardHeight, 2.5, 2.5);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(71, 85, 105);
+        doc.text(item.label, x + 4, y + 6);
+        doc.setFontSize(11);
+        doc.setTextColor(...theme.text);
+        doc.text(item.value, x + 4, y + 12.5);
+      });
+
+      return yStart + cardHeight * 2 + 12;
+    };
+
+    const renderEntryHeader = (yStart: number, label: string) => {
+      doc.setFillColor(...theme.navy);
+      doc.rect(14, yStart, pageWidth - 28, 7, "F");
+      doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(9);
-      doc.text(
-        `${index + 1}. ${new Date(entry.createdAt).toLocaleString()} | ${entry.days} days | UGX ${Math.round(entry.totals.estimatedCost).toLocaleString()}`,
-        14,
-        y + 1.5
-      );
+      doc.text(label, 16, yStart + 4.8);
+      doc.setTextColor(...theme.text);
+      return yStart + 10;
+    };
 
-      y += 8;
+    renderHeader();
+    let y = renderSummary(headerBottom);
+
+    history.forEach((entry, index) => {
+      const entryTitle = `${index + 1}. ${new Date(entry.createdAt).toLocaleString()} | ${entry.days} days | UGX ${Math.round(
+        entry.totals.estimatedCost
+      ).toLocaleString()}`;
+
+      if (y > pageHeight - 30) {
+        doc.addPage();
+        renderHeader();
+        y = headerBottom;
+      }
+
+      y = renderEntryHeader(y, entryTitle);
       doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
 
+      let rowIndex = 0;
       entry.appliances.forEach((item) => {
-        if (y > pageHeight - 12) {
+        if (y > pageHeight - 18) {
           doc.addPage();
-          y = 18;
+          renderHeader();
+          y = renderEntryHeader(headerBottom, `${entryTitle} (continued)`);
         }
 
         const periodUnits = (item.power * item.hoursPerDay * entry.days) / 1000;
         const itemCost = periodUnits * entry.tariff;
+        if (rowIndex % 2 === 0) {
+          doc.setFillColor(...theme.light);
+          doc.rect(14, y - 4, pageWidth - 28, 6.5, "F");
+        }
         doc.text(
-          `${item.name} | ${item.power}W | ${item.hoursPerDay}h/day | ${periodUnits.toFixed(2)}kWh | UGX ${Math.round(itemCost).toLocaleString()}`,
-          14,
+          `${item.name} | ${item.power}W | ${item.hoursPerDay}h/day | ${periodUnits.toFixed(2)}kWh | UGX ${Math.round(
+            itemCost
+          ).toLocaleString()}`,
+          16,
           y
         );
-        y += 5;
+        y += 6.5;
+        rowIndex += 1;
       });
 
       y += 4;
     });
+
+    renderFooter();
 
     doc.save(`openergy-bill-breakdown-${new Date().toISOString().slice(0, 10)}.pdf`);
   }

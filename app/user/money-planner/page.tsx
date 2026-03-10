@@ -266,34 +266,128 @@ export default function MoneyPlannerPage() {
 
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-    doc.setFillColor(30, 41, 59);
-    doc.rect(0, 0, pageWidth, 28, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
-    doc.text("OP Energy - Money Planner Report", 14, 12);
+    const theme = {
+      navy: [15, 23, 42],
+      teal: [13, 148, 136],
+      slate: [226, 232, 240],
+      light: [248, 250, 252],
+      text: [15, 23, 42],
+    } as const;
 
-    doc.setTextColor(15, 23, 42);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(`Budget: UGX ${Math.round(money).toLocaleString()} | Tariff: ${tariff}`, 14, 34);
-    doc.text(`Estimated days money lasts: ${result.estimatedDaysMoneyLasts.toFixed(1)} days`, 14, 40);
-    doc.text(`Allowed daily: ${result.allowedDailyKwh.toFixed(2)} kWh | Planned: ${result.plannedDailyKwh.toFixed(2)} kWh`, 14, 46);
+    const headerHeight = 26;
+    const accentHeight = 3;
+    const headerBottom = headerHeight + accentHeight + 6;
 
-    let y = 56;
-    result.rows.forEach((row) => {
-      doc.text(
-        `${row.name} | ${row.recommendedHours.toFixed(2)}h/day | ${row.dailyKwh.toFixed(2)}kWh | UGX ${Math.round(row.dailyCost).toLocaleString()} | ${row.note}`,
-        14,
-        y
-      );
-      y += 5;
-      if (y > 280) {
-        doc.addPage();
-        y = 18;
+    const renderHeader = () => {
+      doc.setFillColor(...theme.navy);
+      doc.rect(0, 0, pageWidth, headerHeight, "F");
+      doc.setFillColor(...theme.teal);
+      doc.rect(0, headerHeight, pageWidth, accentHeight, "F");
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("OP Energy", 14, 11);
+      doc.setFontSize(14);
+      doc.text("Money Planner Report", 14, 19);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, 11, { align: "right" });
+      doc.text(`Tariff: ${tariff}`, pageWidth - 14, 19, { align: "right" });
+      doc.setTextColor(...theme.text);
+    };
+
+    const renderFooter = () => {
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i += 1) {
+        doc.setPage(i);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text("openergy.app", 14, pageHeight - 8);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 8, { align: "right" });
       }
+      doc.setTextColor(...theme.text);
+    };
+
+    const renderSummary = (yStart: number) => {
+      const cardGap = 4;
+      const cardWidth = (pageWidth - 28 - cardGap) / 2;
+      const cardHeight = 16;
+      const items = [
+        { label: "Budget", value: `UGX ${Math.round(money).toLocaleString()}` },
+        { label: "Estimated Days", value: `${result.estimatedDaysMoneyLasts.toFixed(1)} days` },
+        { label: "Allowed Daily", value: `${result.allowedDailyKwh.toFixed(2)} kWh` },
+        { label: "Planned Daily", value: `${result.plannedDailyKwh.toFixed(2)} kWh` },
+      ];
+
+      items.forEach((item, index) => {
+        const row = Math.floor(index / 2);
+        const col = index % 2;
+        const x = 14 + col * (cardWidth + cardGap);
+        const y = yStart + row * (cardHeight + 4);
+        doc.setFillColor(...theme.light);
+        doc.setDrawColor(...theme.slate);
+        doc.roundedRect(x, y, cardWidth, cardHeight, 2.5, 2.5, "F");
+        doc.roundedRect(x, y, cardWidth, cardHeight, 2.5, 2.5);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(71, 85, 105);
+        doc.text(item.label, x + 4, y + 6);
+        doc.setFontSize(11);
+        doc.setTextColor(...theme.text);
+        doc.text(item.value, x + 4, y + 12.5);
+      });
+
+      return yStart + cardHeight * 2 + 12;
+    };
+
+    const renderTableHeader = (yStart: number) => {
+      doc.setFillColor(...theme.navy);
+      doc.rect(14, yStart, pageWidth - 28, 8, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("Appliance", 16, yStart + 5.5);
+      doc.text("Hours/day", 82, yStart + 5.5);
+      doc.text("Daily Usage", 112, yStart + 5.5);
+      doc.text("Daily Cost", pageWidth - 16, yStart + 5.5, { align: "right" });
+      doc.setTextColor(...theme.text);
+      return yStart + 11;
+    };
+
+    renderHeader();
+    let y = renderSummary(headerBottom);
+    y = renderTableHeader(y);
+
+    let rowIndex = 0;
+    result.rows.forEach((row) => {
+      if (y > pageHeight - 18) {
+        doc.addPage();
+        renderHeader();
+        y = renderTableHeader(headerBottom);
+      }
+
+      if (rowIndex % 2 === 0) {
+        doc.setFillColor(...theme.light);
+        doc.rect(14, y - 4.5, pageWidth - 28, 7, "F");
+      }
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(row.name.slice(0, 28), 16, y);
+      doc.text(`${row.recommendedHours.toFixed(2)}h`, 82, y);
+      doc.text(`${row.dailyKwh.toFixed(2)} kWh`, 112, y);
+      doc.text(`UGX ${Math.round(row.dailyCost).toLocaleString()}`, pageWidth - 16, y, { align: "right" });
+
+      y += 7.5;
+      rowIndex += 1;
     });
+
+    renderFooter();
 
     doc.save(`openergy-money-planner-${new Date().toISOString().slice(0, 10)}.pdf`);
   }

@@ -326,76 +326,139 @@ export default function YakaPage() {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
 
-    doc.setFillColor(15, 23, 42);
-    doc.rect(0, 0, pageWidth, 34, "F");
+    const theme = {
+      navy: [15, 23, 42],
+      teal: [13, 148, 136],
+      slate: [226, 232, 240],
+      light: [248, 250, 252],
+      text: [15, 23, 42],
+    } as const;
 
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("OP Energy - Yaka Usage Report", 14, 14);
+    const headerHeight = 26;
+    const accentHeight = 3;
+    const headerBottom = headerHeight + accentHeight + 6;
+
+    const renderHeader = () => {
+      doc.setFillColor(...theme.navy);
+      doc.rect(0, 0, pageWidth, headerHeight, "F");
+      doc.setFillColor(...theme.teal);
+      doc.rect(0, headerHeight, pageWidth, accentHeight, "F");
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("OP Energy", 14, 11);
+      doc.setFontSize(14);
+      doc.text("Yaka Usage Report", 14, 19);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, 11, { align: "right" });
+      doc.text(`Duration: ${durationValue} ${durationUnit} (${days} day${days > 1 ? "s" : ""})`, pageWidth - 14, 19, {
+        align: "right",
+      });
+      doc.setTextColor(...theme.text);
+    };
+
+    const renderFooter = () => {
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i += 1) {
+        doc.setPage(i);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text("openergy.app", 14, pageHeight - 8);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 8, { align: "right" });
+      }
+      doc.setTextColor(...theme.text);
+    };
+
+    const renderSummary = (yStart: number) => {
+      const cardGap = 4;
+      const cardWidth = (pageWidth - 28 - cardGap * 2) / 3;
+      const cardHeight = 18;
+      const labels = ["Daily Usage", "Period Usage", "Estimated Cost"];
+      const values = [
+        `${totals.dailyKwh.toFixed(2)} kWh`,
+        `${totals.periodKwh.toFixed(2)} units`,
+        `UGX ${Math.round(totals.estimatedCost).toLocaleString()}`,
+      ];
+
+      for (let i = 0; i < 3; i += 1) {
+        const x = 14 + i * (cardWidth + cardGap);
+        doc.setFillColor(...theme.light);
+        doc.roundedRect(x, yStart, cardWidth, cardHeight, 2.5, 2.5, "F");
+        doc.setDrawColor(...theme.slate);
+        doc.roundedRect(x, yStart, cardWidth, cardHeight, 2.5, 2.5);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8.5);
+        doc.setTextColor(71, 85, 105);
+        doc.text(labels[i], x + 4, yStart + 6);
+        doc.setFontSize(12);
+        doc.setTextColor(...theme.text);
+        doc.text(values[i], x + 4, yStart + 13);
+      }
+
+      return yStart + cardHeight + 8;
+    };
+
+    const renderTableHeader = (yStart: number) => {
+      doc.setFillColor(...theme.navy);
+      doc.rect(14, yStart, pageWidth - 28, 8, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("Appliance", 16, yStart + 5.5);
+      doc.text("Power", 72, yStart + 5.5);
+      doc.text("Hours/day", 94, yStart + 5.5);
+      doc.text("Usage", 120, yStart + 5.5);
+      doc.text("Cost", pageWidth - 16, yStart + 5.5, { align: "right" });
+      doc.setTextColor(...theme.text);
+      return yStart + 11;
+    };
+
+    renderHeader();
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 21);
-    doc.text(`Duration: ${durationValue} ${durationUnit} (${days} day${days > 1 ? "s" : ""})`, 14, 27);
-    doc.text(`Tariff: UGX ${tariff.toLocaleString()} / unit`, pageWidth - 14, 27, { align: "right" });
+    doc.setFontSize(9.5);
+    doc.text(`Tariff: UGX ${tariff.toLocaleString()} / unit`, 14, headerBottom - 2);
 
-    doc.setTextColor(15, 23, 42);
+    let y = renderSummary(headerBottom + 2);
+    y = renderTableHeader(y);
 
-    doc.setFillColor(226, 232, 240);
-    doc.roundedRect(14, 40, pageWidth - 28, 24, 2, 2, "F");
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("Daily Usage", 18, 48);
-    doc.text("Period Usage", 72, 48);
-    doc.text("Estimated Cost", 128, 48);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text(`${totals.dailyKwh.toFixed(2)} kWh`, 18, 56);
-    doc.text(`${totals.periodKwh.toFixed(2)} units`, 72, 56);
-    doc.text(`UGX ${Math.round(totals.estimatedCost).toLocaleString()}`, 128, 56);
-
-    let y = 72;
-
-    doc.setFillColor(30, 41, 59);
-    doc.rect(14, y, pageWidth - 28, 9, "F");
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text("Appliance", 16, y + 6);
-    doc.text("Power", 72, y + 6);
-    doc.text("Hours/day", 94, y + 6);
-    doc.text("Usage", 120, y + 6);
-    doc.text("Cost", pageWidth - 16, y + 6, { align: "right" });
-
-    y += 11;
-    doc.setTextColor(15, 23, 42);
+    let rowIndex = 0;
 
     for (const item of selected) {
       const dailyKwh = (item.power * Math.max(0, Math.min(24, item.hoursPerDay))) / 1000;
       const periodKwh = dailyKwh * days;
       const cost = periodKwh * tariff;
 
-      if (y > pageHeight - 16) {
+      if (y > pageHeight - 20) {
         doc.addPage();
-        y = 20;
+        renderHeader();
+        y = renderTableHeader(headerBottom);
+      }
+
+      if (rowIndex % 2 === 0) {
+        doc.setFillColor(...theme.light);
+        doc.rect(14, y - 4.5, pageWidth - 28, 7, "F");
       }
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      doc.text(item.name.slice(0, 26), 16, y);
+      doc.text(item.name.slice(0, 30), 16, y);
       doc.text(`${item.power}W`, 72, y);
       doc.text(item.hoursPerDay.toFixed(1), 96, y);
       doc.text(`${periodKwh.toFixed(2)} kWh`, 120, y);
       doc.text(`UGX ${Math.round(cost).toLocaleString()}`, pageWidth - 16, y, { align: "right" });
 
-      doc.setDrawColor(226, 232, 240);
-      doc.line(14, y + 2, pageWidth - 14, y + 2);
-      y += 7;
+      doc.setDrawColor(...theme.slate);
+      doc.line(14, y + 3, pageWidth - 14, y + 3);
+      y += 7.5;
+      rowIndex += 1;
     }
+
+    renderFooter();
 
     const filename = `openergy-yaka-report-${new Date().toISOString().slice(0, 10)}.pdf`;
     doc.save(filename);

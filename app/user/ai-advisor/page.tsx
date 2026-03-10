@@ -152,40 +152,116 @@ export default function AiAdvisorPage() {
   function downloadAdvisorPdf() {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-    doc.setFillColor(15, 23, 42);
-    doc.rect(0, 0, pageWidth, 28, "F");
-    doc.setTextColor(255, 255, 255);
+    const theme = {
+      navy: [15, 23, 42],
+      teal: [13, 148, 136],
+      slate: [226, 232, 240],
+      light: [248, 250, 252],
+      text: [15, 23, 42],
+    } as const;
+
+    const headerHeight = 26;
+    const accentHeight = 3;
+    const headerBottom = headerHeight + accentHeight + 6;
+
+    const renderHeader = () => {
+      doc.setFillColor(...theme.navy);
+      doc.rect(0, 0, pageWidth, headerHeight, "F");
+      doc.setFillColor(...theme.teal);
+      doc.rect(0, headerHeight, pageWidth, accentHeight, "F");
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("OP Energy", 14, 11);
+      doc.setFontSize(14);
+      doc.text("AI Advisor Report", 14, 19);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, 11, { align: "right" });
+      doc.text(`Plans: ${levelPlans.length}`, pageWidth - 14, 19, { align: "right" });
+      doc.setTextColor(...theme.text);
+    };
+
+    const renderFooter = () => {
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i += 1) {
+        doc.setPage(i);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(100, 116, 139);
+        doc.text("openergy.app", 14, pageHeight - 8);
+        doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 8, { align: "right" });
+      }
+      doc.setTextColor(...theme.text);
+    };
+
+    renderHeader();
+
+    let y = headerBottom;
+    doc.setFillColor(...theme.light);
+    doc.setDrawColor(...theme.slate);
+    doc.roundedRect(14, y, pageWidth - 28, 16, 2.5, 2.5, "F");
+    doc.roundedRect(14, y, pageWidth - 28, 16, 2.5, 2.5);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(15);
-    doc.text("OP Energy - AI Advisor Report", 14, 12);
-
-    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(9.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text("Selected history", 18, y + 6);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 34);
-
-    let y = 44;
-    if (selectedEntry) {
-      doc.text(`Selected history: ${new Date(selectedEntry.createdAt).toLocaleString()} (${selectedEntry.days} days)`, 14, y);
-      y += 7;
-    }
+    doc.setTextColor(...theme.text);
+    doc.text(
+      selectedEntry ? `${new Date(selectedEntry.createdAt).toLocaleString()} (${selectedEntry.days} days)` : "None selected",
+      18,
+      y + 12
+    );
+    y += 24;
 
     levelPlans.forEach((plan) => {
+      const lineHeight = 5;
+      const tipsHeight = plan.tips.length * lineHeight;
+      const cardHeight = 22 + tipsHeight;
+
+      if (y + cardHeight > pageHeight - 18) {
+        doc.addPage();
+        renderHeader();
+        y = headerBottom;
+      }
+
+      doc.setFillColor(...theme.light);
+      doc.setDrawColor(...theme.slate);
+      doc.roundedRect(14, y, pageWidth - 28, cardHeight, 2.5, 2.5, "F");
+      doc.roundedRect(14, y, pageWidth - 28, cardHeight, 2.5, 2.5);
+
       doc.setFont("helvetica", "bold");
-      doc.text(`${plan.level} Plan (-${plan.reductionPct}%)`, 14, y);
-      y += 5;
+      doc.setFontSize(11);
+      doc.text(`${plan.level} Plan`, 18, y + 7);
+      doc.setFontSize(9);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Target reduction: ${plan.reductionPct}%`, 18, y + 12);
+      doc.setTextColor(...theme.text);
+
       doc.setFont("helvetica", "normal");
-      doc.text(`Projected daily usage: ${plan.projectedDailyKwh.toFixed(2)} kWh`, 16, y);
-      y += 5;
-      doc.text(`Estimated monthly savings: UGX ${Math.round(plan.projectedMonthlySavings).toLocaleString()}`, 16, y);
-      y += 5;
+      doc.text(`Projected daily usage: ${plan.projectedDailyKwh.toFixed(2)} kWh`, 120, y + 7);
+      doc.text(`Estimated monthly savings: UGX ${Math.round(plan.projectedMonthlySavings).toLocaleString()}`, 120, y + 12);
+
+      let tipsY = y + 18;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("Tips", 18, tipsY);
+      tipsY += 5;
+      doc.setFont("helvetica", "normal");
       plan.tips.forEach((tip) => {
-        doc.text(`- ${tip}`, 18, y);
-        y += 5;
+        doc.text(`- ${tip}`, 20, tipsY);
+        tipsY += lineHeight;
       });
-      y += 3;
+
+      y += cardHeight + 6;
     });
+
+    renderFooter();
 
     doc.save(`openergy-ai-advisor-${new Date().toISOString().slice(0, 10)}.pdf`);
   }
