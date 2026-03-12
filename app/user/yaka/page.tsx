@@ -1,11 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import HelpOverlay from "@/app/components/HelpOverlay";
 import React, { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import jsPDF from "jspdf";
 
 type Appliance = { name: string; power: number; hoursPerDay?: number };
+
+const helpContent = {
+  title: "Yaka Usage Calculator",
+  description:
+    "Build a realistic appliance list, set daily hours, and get accurate kWh and cost estimates based on your chosen tariff and time period.",
+  howTo: [
+    "Add appliances from the list or create custom ones with watt ratings.",
+    "Set daily usage hours for each appliance and choose the duration.",
+    "Adjust the tariff rate and save or export your results.",
+  ],
+  results: [
+    "Daily kWh usage and total units for the selected period.",
+    "Estimated UGX cost based on your tariff.",
+    "Saved history entries for future planning and reports.",
+  ],
+};
 type SelectedAppliance = { id: string; name: string; power: number; hoursPerDay: number };
 type SavedAppliance = { name: string; power: number; hoursPerDay: number };
 type ApplianceList = { id: string; name: string; createdAt: string; appliances: SavedAppliance[] };
@@ -473,12 +490,15 @@ export default function YakaPage() {
               <p className="text-xs uppercase tracking-[0.2em] text-blue-700 font-black">Energy Planner</p>
               <h1 className="page-title mt-2">Yaka Usage Calculator</h1>
               <p className="page-subtitle mt-2">
-                Build your appliance mix, set daily usage hours, and get live unit and cost estimates.
+                Model your household appliances, set usage hours, and instantly see kWh units and projected spend.
               </p>
             </div>
-            <Link href="/dashboard" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
-              Back to Dashboard
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <HelpOverlay {...helpContent} />
+              <Link href="/dashboard" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+                Back to Dashboard
+              </Link>
+            </div>
           </div>
         </header>
 

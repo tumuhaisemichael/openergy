@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import HelpOverlay from "@/app/components/HelpOverlay";
 import React, { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 
@@ -15,6 +16,22 @@ type ApplianceList = {
   name: string;
   createdAt: string;
   appliances: Array<{ name: string; power: number; hoursPerDay: number }>;
+};
+
+const helpContent = {
+  title: "Appliance Library",
+  description:
+    "Manage your appliance catalog so the calculator and planners always have accurate power ratings to use.",
+  howTo: [
+    "Add custom appliances with their watt ratings.",
+    "Create named appliance lists for different scenarios.",
+    "Open the calculator to apply your saved appliances.",
+  ],
+  results: [
+    "A personalized appliance list synced to your tools.",
+    "Faster setup for future calculations.",
+    "Consistent data across planning modules.",
+  ],
 };
 
 export default function AppliancesPage() {
@@ -187,9 +204,12 @@ export default function AppliancesPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Appliances</h1>
-              <p className="text-sm text-slate-600 mt-1">Create appliances here and they will appear in the calculator list.</p>
+              <p className="text-sm text-slate-600 mt-1">
+                Create and organize appliances so your calculators use consistent power ratings.
+              </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <HelpOverlay {...helpContent} />
               <Link href="/user/yaka" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700">
                 Open Calculator
               </Link>

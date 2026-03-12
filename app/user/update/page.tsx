@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import HelpOverlay from "@/app/components/HelpOverlay";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 
@@ -12,6 +13,22 @@ type HistoryEntry = {
 };
 
 type SavedAppliance = { name: string; power: number; hoursPerDay: number };
+
+const helpContent = {
+  title: "Profile Management",
+  description:
+    "Keep your account details accurate so reports, recommendations, and saved appliance data stay consistent across the app.",
+  howTo: [
+    "Review your profile stats and recent activity.",
+    "Update your name and phone number as needed.",
+    "Save changes to sync the data across modules.",
+  ],
+  results: [
+    "Up-to-date account details for reports and planning.",
+    "Cleaner summaries inside dashboards and exports.",
+    "A consistent profile used across all features.",
+  ],
+};
 
 export default function UserUpdate() {
   const { data: session } = useSession();
@@ -126,12 +143,17 @@ export default function UserUpdate() {
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-blue-700 font-black">User Profile</p>
                 <h1 className="page-title mt-1">{name || "Energy User"}</h1>
-                <p className="page-subtitle mt-1">Manage your account, track usage footprint, and keep data up to date.</p>
+                <p className="page-subtitle mt-1">
+                  Update your account details and keep your usage records synced across features.
+                </p>
               </div>
             </div>
-            <Link href="/dashboard" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
-              Back to Dashboard
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <HelpOverlay {...helpContent} />
+              <Link href="/dashboard" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+                Back to Dashboard
+              </Link>
+            </div>
           </div>
         </div>
 

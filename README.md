@@ -1,4 +1,20 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+OP Energy is a web application for estimating Uganda Yaka electricity usage, tracking appliance power draw, and planning household energy costs. It helps users model daily appliance hours, convert usage into kWh units, and project spend using current tariffs.
+
+## What It Does
+- Calculate estimated kWh and cost based on appliance power ratings and usage hours.
+- Save appliance lists to a user profile for repeat planning.
+- Track calculation history and export reports.
+- Provide dashboards with usage snapshots, charts, and tips.
+- Offer AI-guided energy advice based on recent history.
+- Support admin views for user management and saved appliance insights.
+
+## Key Features
+- Yaka calculator with appliance library + custom appliance input.
+- Cost breakdown and PDF report export.
+- Prediction planner for multi-month usage scenarios.
+- Money planner to estimate how long a budget lasts.
+- AI advisor chat with tailored reduction plans.
+- User profile management and saved appliance sync.
 
 ## Getting Started
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import HelpOverlay from "@/app/components/HelpOverlay";
 import { useSession } from "next-auth/react";
 import React, { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
@@ -26,6 +27,22 @@ type ApplianceList = {
 type EditableMonthPlan = {
   month: number;
   appliances: Array<{ id: string; name: string; power: number; hoursPerDay: number }>;
+};
+
+const helpContent = {
+  title: "Monthly Predictions",
+  description:
+    "Forecast how your appliance usage affects monthly units and cost, and adjust future months to see changes instantly.",
+  howTo: [
+    "Select a baseline from history or a saved appliance list.",
+    "Set the number of months and growth rate to model changes.",
+    "Adjust appliance hours for each month to explore scenarios.",
+  ],
+  results: [
+    "Month-by-month kWh and UGX projections.",
+    "A clear view of how usage changes affect spend.",
+    "Exportable prediction reports in PDF format.",
+  ],
 };
 
 export default function PredictionsPage() {
@@ -394,9 +411,12 @@ export default function PredictionsPage() {
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-emerald-700 font-black">Prediction Module</p>
               <h1 className="page-title mt-2">Monthly Predictions</h1>
-              <p className="page-subtitle mt-2">Modify appliances and hours per month in real time, then see live kWh + money changes.</p>
+              <p className="page-subtitle mt-2">
+                Model future months, tweak appliance hours, and see projected kWh and cost change in real time.
+              </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <HelpOverlay {...helpContent} />
               <button
                 type="button"
                 onClick={downloadPredictionsPdf}

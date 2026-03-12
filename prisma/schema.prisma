@@ -23,6 +23,8 @@ model User {
   updatedAt             DateTime  @updatedAt
 
   savedAppliances       SavedAppliance[]
+  complaints            Complaint[]
+  notifications         Notification[]
 }
 
 model SavedAppliance {
@@ -37,3 +39,27 @@ model SavedAppliance {
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model Complaint {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  subject     String
+  message     String
+  status      String   @default("open")
+  priority    String   @default("normal")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id          Int       @id @default(autoincrement())
+  userId      Int?
+  role        String    @default("user")
+  title       String
+  body        String
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

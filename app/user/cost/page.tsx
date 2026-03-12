@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import HelpOverlay from "@/app/components/HelpOverlay";
 import { useSession } from "next-auth/react";
 import React, { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
@@ -14,6 +15,22 @@ type HistoryEntry = {
   tariff: number;
   appliances: Array<{ name: string; power: number; hoursPerDay: number }>;
   totals: { dailyKwh: number; periodKwh: number; estimatedCost: number };
+};
+
+const helpContent = {
+  title: "Bill Breakdown",
+  description:
+    "Review your saved calculator history as a bill-style report that shows units and cost per appliance for each entry.",
+  howTo: [
+    "Ensure you have saved calculator history entries.",
+    "Open this page to view totals across all entries.",
+    "Download the PDF report to share or keep records.",
+  ],
+  results: [
+    "A detailed list of usage entries with kWh and UGX totals.",
+    "Per-appliance usage and spend for each entry.",
+    "A printable PDF report.",
+  ],
 };
 
 export default function CostPage() {
@@ -201,9 +218,12 @@ export default function CostPage() {
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-indigo-700 font-black">Billing Module</p>
               <h1 className="page-title mt-2">Bill Breakdown</h1>
-              <p className="page-subtitle mt-2">Calculator history only: uses, days, appliances, power, units, and money spent.</p>
+              <p className="page-subtitle mt-2">
+                Turn your calculator history into a clear bill report with totals and per-appliance costs.
+              </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <HelpOverlay {...helpContent} />
               <button
                 type="button"
                 onClick={downloadBillBreakdownPdf}

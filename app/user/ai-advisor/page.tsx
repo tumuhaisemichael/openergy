@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import HelpOverlay from "@/app/components/HelpOverlay";
 import { useSession } from "next-auth/react";
 import React, { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
@@ -24,6 +25,22 @@ type LevelPlan = {
 
 type ChatMsg = { role: "user" | "assistant"; text: string };
 
+const helpContent = {
+  title: "AI Advisor",
+  description:
+    "Turn your recent calculator history into tailored savings plans and ask questions to get targeted energy advice.",
+  howTo: [
+    "Pick a calculator history entry to load its usage data.",
+    "Review the savings levels and tips generated from your top appliances.",
+    "Use the chat box to ask specific questions about reducing costs.",
+  ],
+  results: [
+    "Personalized reduction plans with projected savings.",
+    "Advice grounded in your recent usage patterns.",
+    "An exportable PDF summary of recommendations.",
+  ],
+};
+
 export default function AiAdvisorPage() {
   const { data: session } = useSession();
   const userKey = session?.user?.id || "anonymous";
@@ -32,6 +49,7 @@ export default function AiAdvisorPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [chatInput, setChatInput] = useState("");
+  const [isAsking, setIsAsking] = useState(false);
   const [chat, setChat] = useState<ChatMsg[]>([
     {
       role: "assistant",
@@ -131,22 +149,51 @@ export default function AiAdvisorPage() {
 
   function askAi() {
     const prompt = chatInput.trim();
-    if (!prompt) return;
+    if (!prompt || isAsking) return;
 
     const entry = selectedEntry;
-    const baseline = entry ? `${entry.totals.dailyKwh.toFixed(2)} kWh/day` : "no baseline yet";
-    const tip = levelPlans[1]?.tips[0] || "Reduce high-consumption appliance hours first.";
+    const context = {
+      selectedEntry: entry
+        ? {
+            createdAt: entry.createdAt,
+            days: entry.days,
+            tariff: entry.tariff,
+            totals: entry.totals,
+            appliances: entry.appliances,
+          }
+        : null,
+      topAppliances,
+      levelPlans,
+      generalTips,
+    };
 
-    setChat((prev) => [
-      ...prev,
-      { role: "user", text: prompt },
-      {
-        role: "assistant",
-        text: `Based on your selected history (${baseline}), start with: ${tip}`,
-      },
-    ]);
-
+    setChat((prev) => [...prev, { role: "user", text: prompt }]);
     setChatInput("");
+    setIsAsking(true);
+
+    void fetch("/api/ai/advisor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, context }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const payload = await res.json().catch(() => ({}));
+          const message = payload?.error || "AI advisor is unavailable right now.";
+          setChat((prev) => [...prev, { role: "assistant", text: message }]);
+          return;
+        }
+
+        const payload = await res.json();
+        const reply = payload?.reply || "No response received yet. Try again.";
+        setChat((prev) => [...prev, { role: "assistant", text: reply }]);
+      })
+      .catch(() => {
+        setChat((prev) => [...prev, { role: "assistant", text: "Network error. Please try again." }]);
+      })
+      .finally(() => {
+        setIsAsking(false);
+      });
   }
 
   function downloadAdvisorPdf() {
@@ -274,9 +321,12 @@ export default function AiAdvisorPage() {
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-sky-700 font-black">AI Module</p>
               <h1 className="page-title mt-2">AI Advisor</h1>
-              <p className="page-subtitle mt-2">Click a calculator history entry to see savings plans by level, plus chat-ready advisor space.</p>
+              <p className="page-subtitle mt-2">
+                Select a history entry to generate savings plans, then chat for tailored energy advice.
+              </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <HelpOverlay {...helpContent} />
               <button
                 type="button"
                 onClick={downloadAdvisorPdf}
@@ -349,8 +399,8 @@ export default function AiAdvisorPage() {
         </section>
 
         <section className="card p-5 space-y-3">
-          <h2 className="text-lg font-black text-slate-900">Advisor Chat (Reserved Space)</h2>
-          <p className="text-sm text-slate-600">This area is ready for a richer AI chat integration. You can already use a basic local assistant response.</p>
+          <h2 className="text-lg font-black text-slate-900">Advisor Chat</h2>
+          <p className="text-sm text-slate-600">Ask questions about power usage and savings based on the selected history.</p>
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2 max-h-56 overflow-y-auto">
             {chat.map((msg, idx) => (
@@ -366,13 +416,15 @@ export default function AiAdvisorPage() {
               onChange={(e) => setChatInput(e.target.value)}
               placeholder="Ask for advice based on selected history..."
               className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5"
+              disabled={isAsking}
             />
             <button
               type="button"
               onClick={askAi}
-              className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700"
+              disabled={isAsking || !chatInput.trim()}
+              className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Ask
+              {isAsking ? "Asking..." : "Ask"}
             </button>
           </div>
         </section>

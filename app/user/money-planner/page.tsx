@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import HelpOverlay from "@/app/components/HelpOverlay";
 import { useSession } from "next-auth/react";
 import React, { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
@@ -22,6 +23,22 @@ type PlanResult = {
   plannedDailyKwh: number;
   feasible: boolean;
   estimatedDaysMoneyLasts: number;
+};
+
+const helpContent = {
+  title: "Money Planner",
+  description:
+    "Estimate how long your budget will last based on appliance usage, or calculate the budget needed for a target duration.",
+  howTo: [
+    "Enter your available money and select or add appliances.",
+    "Optionally set a target number of days to plan for.",
+    "Run the planner to see duration, daily spend, and recommended hours.",
+  ],
+  results: [
+    "Projected number of days your budget can cover.",
+    "Daily kWh and cost estimates for the selected appliances.",
+    "A PDF report you can save or share.",
+  ],
 };
 
 export default function MoneyPlannerPage() {
@@ -400,9 +417,12 @@ export default function MoneyPlannerPage() {
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-amber-700 font-black">Budget Module</p>
               <h1 className="page-title mt-2">Money Planner</h1>
-              <p className="page-subtitle mt-2">Add appliances, optionally set target days, then calculate planning results.</p>
+              <p className="page-subtitle mt-2">
+                Plan how far your budget goes and get clear daily spend guidance based on appliance usage.
+              </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <HelpOverlay {...helpContent} />
               <button
                 type="button"
                 onClick={downloadMoneyPlannerPdf}

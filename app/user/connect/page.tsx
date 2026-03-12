@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import HelpOverlay from "@/app/components/HelpOverlay";
 import React, { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 
@@ -13,6 +14,22 @@ type ConnectedDevice = {
   source: "api" | "manual";
 };
 
+const helpContent = {
+  title: "Connected Devices",
+  description:
+    "Track devices connected to your home setup so you can prepare for smart-meter integration and future monitoring.",
+  howTo: [
+    "Add a device name, type, and protocol.",
+    "Save the device to include it in your household setup list.",
+    "Remove devices you no longer use or manage.",
+  ],
+  results: [
+    "A clean list of connected devices and their status.",
+    "Faster onboarding once live integrations are available.",
+    "A record of your monitoring-ready setup.",
+  ],
+};
+
 export default function ConnectPage() {
   const { data: session } = useSession();
   const userId = session?.user?.id || "anonymous";
@@ -23,9 +40,16 @@ export default function ConnectPage() {
   const [type, setType] = useState<"wireless" | "remote">("wireless");
   const [protocol, setProtocol] = useState("Wi-Fi");
   const [status, setStatus] = useState("online");
+  const [btSupported, setBtSupported] = useState(false);
+  const [btError, setBtError] = useState<string | null>(null);
+  const [btScanning, setBtScanning] = useState(false);
 
   useEffect(() => {
     let active = true;
+
+    if (typeof window !== "undefined") {
+      setBtSupported("bluetooth" in navigator);
+    }
 
     async function loadDevices() {
       let apiDevices: ConnectedDevice[] = [];
@@ -77,6 +101,55 @@ export default function ConnectPage() {
     window.localStorage.setItem(storageKey, JSON.stringify(devices));
   }
 
+  async function searchBluetoothDevices() {
+    if (typeof window === "undefined") return;
+    if (!("bluetooth" in navigator)) {
+      setBtError("Bluetooth is not supported in this browser.");
+      return;
+    }
+
+    setBtError(null);
+    setBtScanning(true);
+
+    try {
+      const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: [],
+      });
+
+      let nextStatus = "online";
+      if (device.gatt) {
+        try {
+          await device.gatt.connect();
+        } catch {
+          nextStatus = "pending";
+        }
+      }
+
+      const deviceName = device.name || "Bluetooth device";
+      const connectedDevice: ConnectedDevice = {
+        id: `bt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: deviceName,
+        status: nextStatus,
+        type: "wireless",
+        protocol: "Bluetooth",
+        source: "manual",
+      };
+
+      const nextManual = [connectedDevice, ...manualDevices];
+      saveManualDevices(nextManual);
+      setConnected((prev) => [connectedDevice, ...prev]);
+      setProtocol("Bluetooth");
+      setName("");
+      setStatus(nextStatus);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Bluetooth connection was cancelled.";
+      setBtError(message);
+    } finally {
+      setBtScanning(false);
+    }
+  }
+
   function addManualDevice(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
@@ -113,11 +186,16 @@ export default function ConnectPage() {
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-sky-700 font-black">Device Integration</p>
               <h1 className="page-title mt-2">Connected Devices</h1>
-              <p className="page-subtitle mt-2">Add remote or wireless devices to monitor your household setup.</p>
+              <p className="page-subtitle mt-2">
+                Keep track of connected devices and prepare for smart monitoring features.
+              </p>
             </div>
-            <Link href="/dashboard" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
-              Back to Dashboard
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <HelpOverlay {...helpContent} />
+              <Link href="/dashboard" className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+                Back to Dashboard
+              </Link>
+            </div>
           </div>
 
           <form onSubmit={addManualDevice} className="mt-6 grid grid-cols-1 md:grid-cols-5 gap-3">
@@ -161,6 +239,26 @@ export default function ConnectPage() {
               <option value="pending">Pending</option>
             </select>
           </form>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={searchBluetoothDevices}
+              disabled={!btSupported || btScanning || type !== "wireless"}
+              className="rounded-xl bg-emerald-600 text-white font-bold px-4 py-3 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {btScanning ? "Searching..." : "Search for Bluetooth devices"}
+            </button>
+            <p className="text-xs text-slate-500">
+              {type !== "wireless"
+                ? "Switch to Wireless to search for nearby Bluetooth devices."
+                : btSupported
+                  ? "A device picker will appear with nearby Bluetooth devices."
+                  : "Bluetooth is not supported in this browser."}
+            </p>
+          </div>
+
+          {btError && <p className="mt-2 text-sm text-red-600 font-semibold">{btError}</p>}
 
           <ul className="mt-6 space-y-3">
             {connected.length === 0 ? (

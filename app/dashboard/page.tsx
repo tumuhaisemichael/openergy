@@ -6,11 +6,15 @@ import Link from "next/link";
 import {
   BrainCircuit,
   Calculator,
+  Coins,
   Cpu,
+  Gauge,
   LayoutDashboard,
   ListChecks,
   LogOut,
+  MessageSquare,
   PiggyBank,
+  PlugZap,
   ShieldCheck,
   TrendingUp,
   User,
@@ -79,6 +83,34 @@ const modules = [
     color: "bg-rose-600",
   },
   {
+    title: "Tier Tracker",
+    desc: "See Lifeline + Cooking tier progress",
+    href: "/user/lifeline-tracker",
+    icon: Gauge,
+    color: "bg-blue-700",
+  },
+  {
+    title: "Ghost Power",
+    desc: "Audit standby appliance usage costs",
+    href: "/user/ghost-power",
+    icon: PlugZap,
+    color: "bg-emerald-600",
+  },
+  {
+    title: "Token Optimizer",
+    desc: "Find the best time to buy Yaka tokens",
+    href: "/user/token-optimizer",
+    icon: Coins,
+    color: "bg-amber-600",
+  },
+  {
+    title: "Complaints",
+    desc: "Send issues and track admin responses",
+    href: "/user/complaints",
+    icon: MessageSquare,
+    color: "bg-rose-600",
+  },
+  {
     title: "Appliances",
     desc: "View and manage saved appliances",
     href: "/user/appliances",
@@ -109,12 +141,15 @@ export default function DashboardPage() {
   const [savedAppliances, setSavedAppliances] = useState<SavedAppliance[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [notifications, setNotifications] = useState<Array<{ id: number; title: string; body: string; createdAt: string; readAt?: string | null }>>([]);
+  const [notifLoading, setNotifLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
 
     async function loadData() {
       setStatsLoading(true);
+      setNotifLoading(true);
 
       try {
         const res = await fetch("/api/user/appliances/save");
@@ -144,6 +179,19 @@ export default function DashboardPage() {
       }
 
       if (active) setStatsLoading(false);
+      if (active) {
+        try {
+          const res = await fetch("/api/user/notifications");
+          if (res.ok) {
+            const data = await res.json();
+            setNotifications(Array.isArray(data.notifications) ? data.notifications : []);
+          }
+        } catch {
+          setNotifications([]);
+        } finally {
+          setNotifLoading(false);
+        }
+      }
     }
 
     loadData();
@@ -288,6 +336,42 @@ export default function DashboardPage() {
             icon={<PiggyBank className="w-5 h-5" />}
           />
           <SideNavLink
+            href="/user/appliances"
+            label="Appliances"
+            description="Manage appliance library and lists."
+            icon={<ListChecks className="w-5 h-5" />}
+          />
+          <SideNavLink
+            href="/user/connect"
+            label="Connect Devices"
+            description="Add devices and monitoring sources."
+            icon={<Cpu className="w-5 h-5" />}
+          />
+          <SideNavLink
+            href="/user/lifeline-tracker"
+            label="Tier Tracker"
+            description="Track Lifeline and Cooking tariff tiers."
+            icon={<Gauge className="w-5 h-5" />}
+          />
+          <SideNavLink
+            href="/user/ghost-power"
+            label="Ghost Power"
+            description="Audit standby power costs."
+            icon={<PlugZap className="w-5 h-5" />}
+          />
+          <SideNavLink
+            href="/user/token-optimizer"
+            label="Token Optimizer"
+            description="Compare best time to buy tokens."
+            icon={<Coins className="w-5 h-5" />}
+          />
+          <SideNavLink
+            href="/user/complaints"
+            label="Complaints"
+            description="Send issues and track responses."
+            icon={<MessageSquare className="w-5 h-5" />}
+          />
+          <SideNavLink
             href="/user/update"
             label="Profile"
             description="Update your account details used across modules."
@@ -316,11 +400,21 @@ export default function DashboardPage() {
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-blue-700 font-black">Control Panel</p>
               <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mt-1">Welcome, {session?.user?.name || "User"}</h1>
-              <p className="text-slate-600 mt-2">Manage household electricity planning from one place.</p>
+              <p className="text-slate-600 mt-2">
+                Review your latest estimates, explore feature modules, and see which appliances drive the most usage.
+              </p>
             </div>
-            <div className="rounded-xl bg-slate-100 border border-slate-200 px-4 py-3">
-              <p className="text-xs uppercase tracking-wider font-black text-slate-500">Account Type</p>
-              <p className="font-black text-slate-900 mt-1">{isAdmin ? "Administrator" : "Energy User"}</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="rounded-xl bg-slate-100 border border-slate-200 px-4 py-3">
+                <p className="text-xs uppercase tracking-wider font-black text-slate-500">Account Type</p>
+                <p className="font-black text-slate-900 mt-1">{isAdmin ? "Administrator" : "Energy User"}</p>
+              </div>
+              <button
+                onClick={() => (window.location.href = "/api/auth/signout")}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 hover:bg-red-50 hover:text-red-700"
+              >
+                <LogOut className="w-4 h-4" /> Logout
+              </button>
             </div>
           </div>
         </header>
@@ -357,6 +451,30 @@ export default function DashboardPage() {
                 </Link>
               );
             })}
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-black text-slate-900 text-lg">Notifications</h2>
+            <span className="text-xs uppercase tracking-wider font-black text-rose-700 bg-rose-100 px-2 py-1 rounded-lg">
+              {notifLoading ? "Loading..." : `${notifications.filter((n) => !n.readAt).length} Unread`}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {notifications.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm text-sm text-slate-500">
+                No notifications yet.
+              </div>
+            ) : (
+              notifications.slice(0, 4).map((note) => (
+                <div key={note.id} className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                  <p className="text-sm font-black text-slate-900">{note.title}</p>
+                  <p className="text-sm text-slate-600 mt-2">{note.body}</p>
+                  <p className="text-xs text-slate-400 mt-3">{new Date(note.createdAt).toLocaleString()}</p>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
