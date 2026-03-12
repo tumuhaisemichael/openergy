@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,55 +8,59 @@ datasource db {
 }
 
 model User {
-  id                    Int       @id @default(autoincrement())
-  name                  String
-  email                 String    @unique
-  emailVerifiedAt       DateTime?
-  password              String
-  phone                 String?
-  usertype              String    @default("user")
-  rememberToken         String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  savedAppliances       SavedAppliance[]
-  complaints            Complaint[]
-  notifications         Notification[]
+  id              Int              @id @default(autoincrement())
+  name            String
+  email           String           @unique
+  emailVerifiedAt DateTime?
+  password        String
+  phone           String?
+  usertype        String           @default("user")
+  rememberToken   String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  savedAppliances SavedAppliance[]
+  complaints      Complaint[]
+  notifications   Notification[]
 }
 
 model SavedAppliance {
-  id                    Int       @id @default(autoincrement())
-  userId                Int
-  name                  String
-  power                 Int
-  hoursPerDay           Float     @default(0)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  name        String
+  power       Int
+  hoursPerDay Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId], map: "SavedAppliance_userId_fkey")
 }
 
 model Complaint {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  subject     String
-  message     String
-  status      String   @default("open")
-  priority    String   @default("normal")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  subject   String
+  message   String
+  status    String   @default("open")
+  priority  String   @default("normal")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "Complaint_userId_fkey")
 }
 
 model Notification {
-  id          Int       @id @default(autoincrement())
-  userId      Int?
-  role        String    @default("user")
-  title       String
-  body        String
-  readAt      DateTime?
-  createdAt   DateTime  @default(now())
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  role      String   @default("user")
+  title     String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
 
-  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "Notification_userId_fkey")
 }
